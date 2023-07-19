@@ -1,0 +1,31 @@
+[
+    {
+        "field": "label",
+        "label": "label",
+        "required": true,
+        "hint": "label column",
+        "default": "A"
+    },
+    {
+        "field": "values",
+        "label": "values",
+        "required": true,
+        "hint": "",
+        "default": "D-ZZ",
+        "isNumber": true
+    },
+    {
+        "field": "image",
+        "label": "image",
+        "required": false,
+        "hint": "",
+        "default": "C"
+    },
+    {
+        "field": "category",
+        "label": "category",
+        "required": false,
+        "hint": "",
+        "default": ""
+    }
+]
