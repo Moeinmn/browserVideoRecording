@@ -67,7 +67,7 @@ var videoStream;
 var mediaRecorder
 var currentIntervalIndex , targetIndex;
 
-
+console.log({crossOriginIsolated});
 /////////////////////////////////////
 
 // let hiddenDiv = document.createElement('div');
@@ -133,6 +133,9 @@ function initiateVideoRender() {
       "output.webm"
     );
     console.timeEnd("FF performance");
+
+    window.parent.postMessage("")
+
     const ffData = ffmpeg.FS("readFile", "output.webm");
     const ffURL = URL.createObjectURL(new Blob([ffData.buffer]));
 
@@ -144,6 +147,11 @@ function initiateVideoRender() {
     link.click();
     window.URL.revokeObjectURL(videoURL);
     window.URL.revokeObjectURL(ffURL);
+
+    //Emptying local storage 
+    document.querySelector('.indicator-container').style.visibility = 'hidden';
+    localStorage.removeItem('start-record');
+    
 
     //VIDEO ELEMENT RENDER
 
@@ -1487,10 +1495,17 @@ function createChart() {
 }
 
 const init_handler = async () => {
-
+  isVideoRecord = localStorage.getItem("start-record")
+  console.log({isVideoRecord});
+  
+  if(isVideoRecord){
+    document.querySelector('.indicator-container').style.visibility = 'visible';
   //TODO 4 : await ffmpeg load 
-  await ffmpeg.load();
+  // if(!ffmpeg.isLoaded()){
+    await ffmpeg.load();
+  // }
   initiateVideoRender();
+  }
 
   mapData();
   createChart();
@@ -1501,7 +1516,9 @@ const change_config_handler = () => {
   //let prevSvg
 
   //TODO 5: starting animation frame
-  requestAnimationFrame(recordFrame);
+  if(isVideoRecord){
+    requestAnimationFrame(recordFrame);
+  }
 };
 
 const resizeHandler = () => {
