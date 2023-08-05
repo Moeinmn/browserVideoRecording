@@ -150,7 +150,7 @@ function initiateVideoRender() {
 
     //Emptying local storage 
     document.querySelector('.indicator-container').style.visibility = 'hidden';
-    localStorage.removeItem('start-record');
+    //localStorage.removeItem('start-record');
     
 
     //VIDEO ELEMENT RENDER
@@ -1495,7 +1495,7 @@ function createChart() {
 }
 
 const init_handler = async () => {
-  isVideoRecord = localStorage.getItem("start-record")
+  isVideoRecord = /videoRec=true/.test(window.location.search)
   console.log({isVideoRecord});
   
   if(isVideoRecord){
