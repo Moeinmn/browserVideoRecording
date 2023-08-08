@@ -3,7 +3,7 @@ const httpProxy = require('http-proxy');
 
 // const targetUrl = 'http://localhost:8080/'; // Replace with the target URL you want to proxy
 
-const targetUrl = 'https://pss.pro.ai/api/embed/67abc8c5-35f3-4317-8884-8dd8daf136b8?crossOriginIsolated=true&enableCors=true'
+const targetUrl = 'http://localhost:8080'
 
 const proxy = httpProxy.createProxyServer({secure: false});
 
@@ -18,6 +18,6 @@ app.use((req, res) => {
   proxy.web(req, res, { target: targetUrl });
 });
 
-app.listen(8081, () => {
-  console.log('Proxy server listening on port 3000');
+app.listen(6565, () => {
+  console.log('Proxy server listening on port 6565');
 });

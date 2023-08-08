@@ -1,5 +1,5 @@
-const { createFFmpeg, fetchFile } = require("@ffmpeg/ffmpeg");
-const ffmpeg = createFFmpeg({ log: true });
+// const { createFFmpeg, fetchFile } = require("@ffmpeg/ffmpeg");
+// const ffmpeg = createFFmpeg({ log: true });
 
 let option;
 let chart;
@@ -64,11 +64,13 @@ const stopBtnDefinition =
 var canvas;
 var context;
 var videoStream;
-var mediaRecorder
-var currentIntervalIndex , targetIndex;
+var mediaRecorder;
+var currentIntervalIndex, targetIndex;
+var imageBase64Dic = {};
 
-console.log({crossOriginIsolated});
+console.log({ crossOriginIsolated });
 /////////////////////////////////////
+
 
 // let hiddenDiv = document.createElement('div');
 // hiddenDiv.setAttribute("id", "Div1");
@@ -93,10 +95,8 @@ console.log({crossOriginIsolated});
 //   worker.log('Message received from worker');
 // }
 
-
-//TODO 1: 
+//TODO 1:
 function initiateVideoRender() {
-
   canvas = document.createElement("canvas");
   canvas.width = 1000;
   canvas.height = 1000;
@@ -123,35 +123,30 @@ function initiateVideoRender() {
     var videoURL = URL.createObjectURL(blob);
     console.log({ videoURL });
 
-    ffmpeg.FS("writeFile", "test.webm", await fetchFile(blob));
-    console.time("FF performance");
-    await ffmpeg.run(
-      "-i",
-      "test.webm",
-      "-filter:v",
-      "setpts=0.5*PTS",
-      "output.webm"
-    );
-    console.timeEnd("FF performance");
+    // ffmpeg.FS("writeFile", "test.webm", await fetchFile(blob));
+    // console.time("FF performance");
+    // await ffmpeg.run(
+    //   "-i",
+    //   "test.webm",
+    //   "output.webm"
+    // );
+    // console.timeEnd("FF performance");
 
-    window.parent.postMessage("")
 
-    const ffData = ffmpeg.FS("readFile", "output.webm");
-    const ffURL = URL.createObjectURL(new Blob([ffData.buffer]));
+    // const ffData = ffmpeg.FS("readFile", "output.webm");
+    // const ffURL = URL.createObjectURL(new Blob([ffData.buffer]));
 
     //AUTO DOWNLOAD LINK
     let link = document.createElement("a");
-    link.href = ffURL;
-    link.download = "ffm.webm";
+    link.href = videoURL;
+    link.download = "plotset.webm";
 
     link.click();
     window.URL.revokeObjectURL(videoURL);
-    window.URL.revokeObjectURL(ffURL);
 
-    //Emptying local storage 
-    document.querySelector('.indicator-container').style.visibility = 'hidden';
+    //Emptying local storage
+    document.querySelector(".indicator-container").style.visibility = "hidden";
     //localStorage.removeItem('start-record');
-    
 
     //VIDEO ELEMENT RENDER
 
@@ -167,25 +162,68 @@ function initiateVideoRender() {
 }
 
 //TODO 2:
-//StopCondition should be global var that can be accessible 
+//StopCondition should be global var that can be accessible
 async function recordFrame() {
-  const svgBlob = await exportSvg();
-    const imgElement = new Image();
-    let frameURL = URL.createObjectURL(svgBlob);
-    imgElement.src = frameURL;
-    imgElement.onload = function() {
-      context.drawImage(imgElement, 0, 0);
-      window.URL.revokeObjectURL(frameURL);
-      videoStream.getVideoTracks()[0].requestFrame();
-    };
-    if (currentIntervalIndex === targetIndex) {
-      console.log("finished");
-      mediaRecorder.stop();
-      return;
-    } else {
-      //console.log('yeeey');
-      requestAnimationFrame(recordFrame);
+  console.time("Export Time");
+
+  //Approach 1 :
+  // const svgBlob = await exportSvg();
+
+  //Approach 2 :
+  const svgURL = new XMLSerializer().serializeToString(
+    document.querySelector("#chart-wrapper").querySelector("svg")
+  );
+  const svgBlob = new Blob([svgURL], { type: "image/svg+xml" });
+
+  console.timeEnd("Export Time");
+
+  const imgElement = new Image();
+  let frameURL = URL.createObjectURL(svgBlob);
+  imgElement.src = frameURL;
+  imgElement.onload = function() {
+    context.drawImage(imgElement, 0, 0);
+    window.URL.revokeObjectURL(frameURL);
+    videoStream.getVideoTracks()[0].requestFrame();
+  };
+  if (currentIntervalIndex === targetIndex) {
+    console.log("finished");
+    mediaRecorder.stop();
+    return;
+  } else {
+    //console.log('yeeey');
+    requestAnimationFrame(recordFrame);
+  }
+}
+
+async function loadBase64Images() {
+  
+    for (const url of Object.entries(imagesDictionary)){
+      let urlAdress = url[1];
+      const data = await fetch(urlAdress);
+      const blob = await data.blob();
+      const reader = new FileReader();
+      reader.readAsDataURL(blob);
+      
+      reader.onloadend = () => {
+        const base64data = reader.result;
+        //let base64LocalAddress = URL.createObjectURL(base64data);
+  
+        imageBase64Dic[url[0]] = base64data
+        console.log({ base64data });
+        //console.log({base64LocalAddress});
+      };
+      // await new Promise((resolve) => {
+      //   reader.onloadend = () => {
+      //     const base64data = reader.result;
+      //     imageBase64Dic[url[0]] = base64data
+      //     console.log({ base64data });
+      //     resolve();
+      //   };
+      // });
+      console.log({imageBase64Dic});
     }
+  
+  
 }
 
 const removeSvg = () => {
@@ -238,6 +276,8 @@ function mapData() {
     if (categoryDictionary[d[col_rel.label]]) return;
     categoryDictionary[d.name] = d.category;
   });
+
+  loadBase64Images();
 
   //////////////////////////////////////////////////////////////
   datevalues = Array.from(
@@ -306,13 +346,15 @@ function mapData() {
   tickFormat = undefined; // override as desired
 
   timeFrames = Array.from(keyframes, (d) => d[0]);
+  console.log("Data finish");
 }
 
 function createChart() {
-  // console.log(col_rel["image"]=="")
+
+
 
   //TODO 3 :
-  if(canvas){
+  if (canvas) {
     canvas.width = width;
     canvas.height = height;
   }
@@ -1327,18 +1369,7 @@ function createChart() {
         : 10;
     };
 
-    const getBase64FromUrl = async (url) => {
-      const data = await fetch(url);
-      const blob = await data.blob();
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(blob);
-        reader.onloadend = () => {
-          const base64data = reader.result;
-          resolve(base64data);
-        };
-      });
-    };
+
     return ([date, data], transition) =>
       (ClipPath = ClipPath.data(data.slice(0, barCount), (d) => d.name)
         .join(
@@ -1367,7 +1398,10 @@ function createChart() {
               .attr("clip-path", (d, i) =>
                 config?.shape?.type === "circle" ? `url(#img${i})` : null
               )
-              .attr("xlink:href", (d) => `${imagesDictionary[d.name]}`);
+              .attr("href", (d) => {
+                console.log({aaa : imageBase64Dic[d.name]});
+                return `${imageBase64Dic[d.name]}`
+              });
           },
           (update) => update,
           (exit) => exit.remove()
@@ -1495,30 +1529,38 @@ function createChart() {
 }
 
 const init_handler = async () => {
-  isVideoRecord = /videoRec=true/.test(window.location.search)
-  console.log({isVideoRecord});
-  
-  if(isVideoRecord){
-    document.querySelector('.indicator-container').style.visibility = 'visible';
-  //TODO 4 : await ffmpeg load 
-  // if(!ffmpeg.isLoaded()){
-    await ffmpeg.load();
-  // }
-  initiateVideoRender();
+  isVideoRecord = /videoRec=true/.test(window.location.search);
+  console.log({ isVideoRecord });
+
+  if (isVideoRecord) {
+    document.querySelector(".indicator-container").style.visibility = "visible";
+    //TODO 4 : await ffmpeg load
+    // if(!ffmpeg.isLoaded()){
+    //await ffmpeg.load();
+    // }
+    initiateVideoRender();
   }
 
   mapData();
-  createChart();
+
+  //NOTE : TIME OUT IS FOR IMAGEBASE64 LOAD
+  setTimeout(()=>{
+    createChart();
+  } , 2000)
 };
 
 const change_config_handler = () => {
-  createChart();
-  //let prevSvg
+  setTimeout(()=>{
+    createChart();
 
-  //TODO 5: starting animation frame
-  if(isVideoRecord){
-    requestAnimationFrame(recordFrame);
-  }
+    //TODO 5: starting animation frame
+    if (isVideoRecord) {
+      requestAnimationFrame(recordFrame);
+    }
+  } , 2000)
+
+  
+  
 };
 
 const resizeHandler = () => {
