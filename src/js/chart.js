@@ -67,6 +67,7 @@ var videoStream;
 var mediaRecorder;
 var currentIntervalIndex, targetIndex;
 var imageBase64Dic = {};
+var stopVideoRec = false;
 
 console.log({ crossOriginIsolated });
 /////////////////////////////////////
@@ -98,8 +99,8 @@ console.log({ crossOriginIsolated });
 //TODO 1:
 function initiateVideoRender() {
   canvas = document.createElement("canvas");
-  canvas.width = 1000;
-  canvas.height = 1000;
+  canvas.width = width;
+  canvas.height = height;
   document.querySelector("#chart-wrapper").appendChild(canvas);
 
   context = canvas.getContext("2d");
@@ -113,7 +114,6 @@ function initiateVideoRender() {
 
   var chunks = [];
   mediaRecorder.ondataavailable = function(e) {
-    console.log(123);
     chunks.push(e.data);
   };
 
@@ -121,7 +121,6 @@ function initiateVideoRender() {
     var blob = new Blob(chunks, { type: "video/webm" });
     chunks = [];
     var videoURL = URL.createObjectURL(blob);
-    console.log({ videoURL });
 
     // ffmpeg.FS("writeFile", "test.webm", await fetchFile(blob));
     // console.time("FF performance");
@@ -164,7 +163,6 @@ function initiateVideoRender() {
 //TODO 2:
 //StopCondition should be global var that can be accessible
 async function recordFrame() {
-  console.time("Export Time");
 
   //Approach 1 :
   // const svgBlob = await exportSvg();
@@ -175,8 +173,6 @@ async function recordFrame() {
   );
   const svgBlob = new Blob([svgURL], { type: "image/svg+xml" });
 
-  console.timeEnd("Export Time");
-
   const imgElement = new Image();
   let frameURL = URL.createObjectURL(svgBlob);
   imgElement.src = frameURL;
@@ -185,10 +181,11 @@ async function recordFrame() {
     window.URL.revokeObjectURL(frameURL);
     videoStream.getVideoTracks()[0].requestFrame();
   };
-  if (currentIntervalIndex === targetIndex) {
+
+  if ( stopVideoRec ) {
     console.log("finished");
     mediaRecorder.stop();
-    return;
+    return
   } else {
     //console.log('yeeey');
     requestAnimationFrame(recordFrame);
@@ -209,7 +206,7 @@ async function loadBase64Images() {
         //let base64LocalAddress = URL.createObjectURL(base64data);
   
         imageBase64Dic[url[0]] = base64data
-        console.log({ base64data });
+        //console.log({ base64data });
         //console.log({base64LocalAddress});
       };
       // await new Promise((resolve) => {
@@ -220,7 +217,7 @@ async function loadBase64Images() {
       //     resolve();
       //   };
       // });
-      console.log({imageBase64Dic});
+      //console.log({imageBase64Dic});
     }
   
   
@@ -1399,8 +1396,7 @@ function createChart() {
                 config?.shape?.type === "circle" ? `url(#img${i})` : null
               )
               .attr("href", (d) => {
-                console.log({aaa : imageBase64Dic[d.name]});
-                return `${imageBase64Dic[d.name]}`
+                return isVideoRecord ? `${imageBase64Dic[d.name]}` : `${imagesDictionary[d.name]}`
               });
           },
           (update) => update,
@@ -1492,11 +1488,18 @@ function createChart() {
     let frameIndex = keyframes.findIndex((d) => d[0] === selectedFrame);
 
     arrayForInterval = keyframes.slice(frameIndex);
-
+    
     targetIndex = arrayForInterval.length;
+    
     timer = setInterval(() => {
       if (currentIntervalIndex === arrayForInterval.length) {
+       
         clearInterval(timer);
+
+        // ! This time Out is for capturing last frame
+        setTimeout(()=>{
+          stopVideoRec = true;
+        }, 3000)
 
         //for restarting loop
         selectedFrame = keyframes[0][0];
@@ -1505,6 +1508,7 @@ function createChart() {
         }
         return;
       }
+
       selectedFrame = arrayForInterval[currentIntervalIndex][0];
 
       update(arrayForInterval[currentIntervalIndex]);
@@ -1546,7 +1550,7 @@ const init_handler = async () => {
   //NOTE : TIME OUT IS FOR IMAGEBASE64 LOAD
   setTimeout(()=>{
     createChart();
-  } , 2000)
+  } , isVideoRecord ? 3000 : 0)
 };
 
 const change_config_handler = () => {
@@ -1557,7 +1561,7 @@ const change_config_handler = () => {
     if (isVideoRecord) {
       requestAnimationFrame(recordFrame);
     }
-  } , 2000)
+  } , isVideoRecord ? 3000 : 0)
 
   
   
