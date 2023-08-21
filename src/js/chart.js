@@ -61,6 +61,7 @@ const stopBtnDefinition =
 /////////////
 
 //TODO 0: video rendering vars
+var isVideoRecord;
 var canvas;
 var context;
 var videoStream;
@@ -162,7 +163,7 @@ function initiateVideoRender() {
 
 //TODO 2:
 //StopCondition should be global var that can be accessible
-async function recordFrame() {
+function recordFrame() {
 
   //Approach 1 :
   // const svgBlob = await exportSvg();
@@ -1519,7 +1520,7 @@ function createChart() {
 
   //WARNING : For drawing initial chart
   update(keyframes[0]);
-  finishRender();
+
   if (config?.timeline.show === false) {
     if (timer) {
       clearInterval(timer);

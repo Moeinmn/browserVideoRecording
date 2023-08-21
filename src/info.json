@@ -2,5 +2,6 @@
     "title": "Video rb",
     "author": "Pro AI",
     "slug": "racebar",
-    "category": "2"
+    "category": "2",
+    "supportsVideoExport": true
 }
